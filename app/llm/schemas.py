@@ -18,4 +18,4 @@ class LLMResponse(BaseModel):
     content: str
     provider: str
     model: str
-    usage: dict | None = None
+    usage: dict[str, int] | None = None
