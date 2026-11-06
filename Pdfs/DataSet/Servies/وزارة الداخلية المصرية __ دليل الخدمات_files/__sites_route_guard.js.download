@@ -1,0 +1,81 @@
+(() => {
+  const mode = "protect_listed";
+  const paths = ["/UserProfile"];
+  const staticPrefixes = ['/oauth2', '/proxy/logout', '/__sites_route_guard.js', '/js/', '/css/', '/img/', '/fonts/', '/app3/', '/favicon.ico', '/config.json'];
+  const normalize = (value) => {
+    let path = '/';
+    try {
+      path = new URL(String(value || '/'), window.location.origin).pathname || '/';
+    } catch {
+      path = String(value || '/').split('?')[0].split('#')[0] || '/';
+    }
+    if (!path.startsWith('/')) path = '/' + path;
+    if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+    return path || '/';
+  };
+  const matchesRule = (pathname, rule) => pathname === rule || pathname.startsWith(rule + '/');
+  const isStatic = (pathname) => staticPrefixes.some(prefix => pathname === prefix || pathname.startsWith(prefix));
+  const isProtected = (pathname) => {
+    if (isStatic(pathname)) return false;
+    if (mode === 'full_open') return false;
+    if (mode === 'full_protected') return true;
+    if (mode === 'protect_listed') return paths.some(rule => matchesRule(pathname, rule));
+    if (mode === 'open_listed') return !paths.some(rule => matchesRule(pathname, rule));
+    return false;
+  };
+  const oauthStartFor = (url) => '/oauth2/start?rd=' + encodeURIComponent(url.pathname + url.search + url.hash);
+  const redirectProtected = (url) => {
+    const next = oauthStartFor(url);
+    if (window.location.pathname + window.location.search === next) return true;
+    try {
+      document.documentElement.style.visibility = 'hidden';
+    } catch {}
+    window.location.replace(next);
+    return true;
+  };
+  const forceServerNavigation = (target) => {
+    if (!target) return false;
+    let url;
+    try {
+      url = new URL(target, window.location.origin);
+    } catch {
+      return false;
+    }
+    if (url.origin !== window.location.origin) return false;
+    const pathname = normalize(url.pathname);
+    if (!isProtected(pathname)) return false;
+    return redirectProtected(url);
+  };
+  const enforceCurrentPath = () => forceServerNavigation(window.location.href);
+  const wrapHistory = (method) => {
+    const original = history[method].bind(history);
+    history[method] = function(state, title, url) {
+      if (typeof url !== 'undefined' && forceServerNavigation(url)) return;
+      return original(state, title, url);
+    };
+  };
+  wrapHistory('pushState');
+  wrapHistory('replaceState');
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!anchor) return;
+    if (anchor.target && anchor.target !== '_self') return;
+    if (anchor.hasAttribute('download')) return;
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    if (forceServerNavigation(href)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+  window.addEventListener('pageshow', () => { enforceCurrentPath(); });
+  window.addEventListener('popstate', () => { enforceCurrentPath(); });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { enforceCurrentPath(); }, { once: true });
+  } else {
+    enforceCurrentPath();
+  }
+})();

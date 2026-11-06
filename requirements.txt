@@ -5,3 +5,4 @@ fastapi==0.115.6
 uvicorn[standard]
 pytest>=8.0
 openai==3.45.0
+pypdf>=7.0,<8.0

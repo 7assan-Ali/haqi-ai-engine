@@ -1,0 +1,60 @@
+(function () {
+    "use strict";
+    var login = document.getElementById("portal-login-link");
+    var menu = document.getElementById("portal-user-menu");
+    var initial = document.getElementById("portal-user-initial");
+    if (!login || !menu || !initial || !window.fetch) return;
+    var sequence = 0;
+
+    function decode(value) {
+        if (!value) return "";
+        try {
+            var bytes = window.atob(value);
+            var encoded = "";
+            for (var i = 0; i < bytes.length; i++) {
+                encoded += "%" + ("0" + bytes.charCodeAt(i).toString(16)).slice(-2);
+            }
+            return decodeURIComponent(encoded).trim();
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function refresh() {
+        var current = ++sequence;
+        var controller = window.AbortController ? new window.AbortController() : null;
+        var timer = controller ? window.setTimeout(function () { controller.abort(); }, 5000) : null;
+        var options = { credentials: "same-origin", cache: "no-store", redirect: "manual" };
+        if (controller) options.signal = controller.signal;
+        window.fetch("/oauth2/auth", options).then(function (response) {
+            if (current !== sequence || response.redirected) return;
+            if (response.status === 401 || response.status === 403) {
+                menu.style.display = "none";
+                login.style.display = "";
+                initial.textContent = "";
+                menu.removeAttribute("title");
+                return;
+            }
+            if (response.status !== 200 && response.status !== 202) return;
+            var name = decode(response.headers.get("X-Auth-Request-Full-Name-B64")) ||
+                decode(response.headers.get("X-Auth-Request-Name-B64"));
+            var letter = decode(response.headers.get("X-Auth-Request-Initial-B64")) ||
+                (name ? Array.from(name)[0] : "");
+            initial.textContent = letter;
+            initial.classList.toggle("icon-user", !letter);
+            if (name) menu.setAttribute("title", name);
+            else menu.removeAttribute("title");
+            login.style.display = "none";
+            menu.style.display = "";
+        }).catch(function () {
+            // A failed status check must not cause login redirects or replace server-rendered state.
+        }).then(function () {
+            if (timer !== null) window.clearTimeout(timer);
+        });
+    }
+
+    refresh();
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) refresh();
+    });
+}());

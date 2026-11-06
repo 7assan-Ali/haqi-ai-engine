@@ -1,0 +1,53 @@
+document.addEventListener('DOMContentLoaded', function () {
+  var botterIframe = document.getElementById('botter-iframe');
+  if (botterIframe) {
+    var botterUrl = botterIframe.src;
+    var urlSearchParams = new URLSearchParams(botterUrl);
+    var iframeDashboard = urlSearchParams.get('iframe-dashboard');
+
+
+
+    var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+    var eventer = window[eventMethod];
+    var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+
+    eventer(messageEvent,function(e) {
+      if (e && e.data === 'toggleWidget') {
+        if (botterIframe.classList.contains('botter-iframe-active')) {
+          setTimeout(function () {
+            botterIframe.classList.remove('botter-iframe-active')
+            botterIframe.classList.remove('botter-iframe-offline-message-active')
+          },100)
+        } else {
+          botterIframe.classList.add('botter-iframe-active')
+        }
+
+    } else if (e && e.data === 'toggleOfflineMessage'){
+          if (botterIframe.classList.contains('botter-iframe-offline-message-active')) {
+            setTimeout(function () {
+              botterIframe.classList.remove('botter-iframe-offline-message-active')
+            }, 400)
+          } else {
+            botterIframe.classList.add('botter-iframe-offline-message-active')
+          }
+
+
+      } else if (e && e.data === 'widgetLeft' && !iframeDashboard) {
+        botterIframe.classList.add('botter-iframe-left')
+        } else if (e && e.data === 'toggleChannels'){
+        if (botterIframe.classList.contains('botter-iframe-channels-active')) {
+          setTimeout(function () {
+            botterIframe.classList.remove('botter-iframe-channels-active')
+          }, 400)
+        } else {
+          botterIframe.classList.add('botter-iframe-channels-active')
+        }
+
+
+      }
+    },false);
+
+
+
+  }
+})

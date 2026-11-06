@@ -1,0 +1,53 @@
+// service-links-fix-1.0.0
+$(document).ready(function () {
+    var selector = ".elecServicesContainre .item,.linkEservices,.linkEservices2";
+
+    function destination(raw, legacyId) {
+        if (!raw || /^javascript:\s*;?\s*$/i.test(raw)) {
+            raw = legacyId;
+            if (!raw || !/^(https?:\/\/|\/)/i.test(raw)) return null;
+        }
+        if (/^\s*#/.test(raw)) return null;
+        try {
+            var target = new URL(raw, window.location.href);
+            if (target.protocol !== "https:" && target.protocol !== "http:") return null;
+            Array.from(target.searchParams.keys()).forEach(function (key) {
+                if (/^(email|token)$/i.test(key)) target.searchParams.delete(key);
+            });
+            if (target.hostname.toLowerCase() === "moi.gov.eg" &&
+                target.pathname.replace(/\/$/, "").toLowerCase() === "/account/login") {
+                return "https://moi.gov.eg/oauth2/start?rd=%2F";
+            }
+            return target.href;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function prepare(anchor, item) {
+        var href = destination(anchor.getAttribute("href"), item.id);
+        if (href) anchor.setAttribute("href", href);
+        return href;
+    }
+
+    // Real hrefs preserve keyboard, new-tab and context-menu navigation.
+    $(selector).each(function () {
+        var item = this;
+        $(item).find("a").addBack("a").each(function () { prepare(this, item); });
+    });
+
+    $(document).on("click.serviceLinks auxclick.serviceLinks contextmenu.serviceLinks", selector, function (event) {
+        if (event.isDefaultPrevented()) return;
+        var anchor = $(event.target).closest("a")[0];
+        if (anchor && (anchor === this || this.contains(anchor))) {
+            prepare(anchor, this);
+            return;
+        }
+        if (event.type !== "click" || event.button !== 0 ||
+            event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        var href = destination(null, this.id);
+        if (!href) return;
+        event.preventDefault();
+        window.location.assign(href);
+    });
+});

@@ -1,0 +1,37 @@
+#botter-iframe {
+    height: 81px;
+    width: 92px;
+    border-width: 0;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    max-height: 100%;
+    z-index: 10000;
+}
+
+.botter-iframe-offline-message-active {
+    width: 280px !important;
+    height: 210px !important;
+}
+
+.botter-iframe-channels-active {
+    height: 225px !important;
+}
+
+.botter-iframe-active{
+    height: 731px !important;
+    width: 427px !important;
+}
+
+.botter-iframe-left {
+    left: 0 !important;
+    right: auto !important;
+}
+
+
+@media (max-device-width: 776px) {
+    .botter-iframe-active{
+        height: 100% !important;
+        width: 100% !important;
+    }
+}

@@ -59,3 +59,15 @@ async def test_openai_generate():
         assert response.provider == "openai"
         assert response.model == "test-model"
         assert response.usage["total_tokens"] == 15
+
+
+
+def test_openai_provider_requires_api_key(monkeypatch):
+
+    monkeypatch.setattr(settings, "LLM_API_KEY", "")
+
+    with pytest.raises(
+        ValueError,
+        match="LLM_API_KEY is missing"
+    ):
+        OpenAIProvider()
